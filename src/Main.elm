@@ -516,7 +516,7 @@ view model =
   [ div [ class """uk-grid-small uk-child-width-1-6@m uk-child-width-1-3@s
                    uk-child-width-1-1 uk-grid"""
         , attribute "uk-grid" ""
-        , attribute "uk-height-match" "target: > div > button"
+        , attribute "uk-height-match" "target: > div > *"
         ]
           [ div []
             [ button
@@ -555,12 +555,13 @@ view model =
               [ text "Linear base" ] ]
           , div []
             [ a
-              [ class """uk-button uk-button-primary uk-button-small
-                         uk-width-expand"""
-              , href
+              [ href
               "https://github.com/olus2000/concat-evaluator/blob/main/README.rst"
               ]
-              [ text "README" ] ]
+              [ button [ class """uk-button uk-button-primary uk-button-small
+                               uk-width-expand uk-height-1-1"""
+              ]
+              [ text "README" ] ] ]
           ]
   , div [ class ukCard ]
     [ div [ class "uk-overflow-auto" ]
