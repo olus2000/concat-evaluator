@@ -359,7 +359,8 @@ topQuotes arity stack =
         Nothing -> Nothing
 
 
-makeTree : Tree a -> Maybe ( List ( List ( Tree a ) ) ) -> Maybe ( List ( List ( Tree a ) ) )
+makeTree : Tree a -> Maybe ( List ( List ( Tree a ) ) )
+                  -> Maybe ( List ( List ( Tree a ) ) )
 makeTree x rest =
   case rest of
     Nothing -> Nothing
@@ -650,7 +651,7 @@ operatorRow operator =
               , style "height" "30px"
               ] []
       ]
-    , td []
+    , td [ class "uk-table-shrink uk-padding-remove-horizontal" ]
       [ span
         [ attribute "uk-icon" "icon: trash"
         , class "uk-preserve-width"
