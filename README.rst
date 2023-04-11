@@ -76,9 +76,14 @@ errors you can step through its evaluation using the buttons below the textbox.
 Compilation
 ===========
 
-To compile the application to runnable javascript you will need Elm_. Then you
-should use some combination of ``elm reactor`` and ``elm install`` to compile
-the project, I don't really know.
+To compile the application to runnable javascript you will need Elm_. After
+installing Elm run the following command in the project root::
+
+    elm make src/Main.elm --output main.js
+
+This should compile the file ``main.js`` which is referenced by ``index.html``,
+and ``index.html`` should now display the application when opened with a
+browser.
 
 .. _Elm: https://guide.elm-lang.org/install/elm.html
 
@@ -90,5 +95,5 @@ This software has been created by `Aleksander "olus2000" Sabak`_ in 2023 and
 released under the `GPL v3 license`_. Thanks to the `QWD community`_ for help!
 
 .. _Aleksander "olus2000" Sabak: https://github.com/olus2000
-.. _GPL v3 license: ../LICENSE
+.. _GPL v3 license: ./LICENSE
 .. _QWD community: https://qwd.software
