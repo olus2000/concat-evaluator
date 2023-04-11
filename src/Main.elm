@@ -3,9 +3,9 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (Html, button, div, text, br, input, code, textarea, span,
-                      table, caption, thead, tr, th, tbody, td)
+                      table, caption, thead, tr, th, tbody, td, a)
 import Html.Attributes exposing (class, style, value, placeholder, attribute,
-                                 colspan)
+                                 colspan, href)
 import Html.Events exposing (onClick, onInput)
 import Dict exposing (Dict)
 import Array exposing (Array)
@@ -554,12 +554,13 @@ view model =
               ]
               [ text "Linear base" ] ]
           , div []
-            [ button
+            [ a
               [ class """uk-button uk-button-primary uk-button-small
                          uk-width-expand"""
-              , onClick (Preset cakeK)
+              , href
+              "https://github.com/olus2000/concat-evaluator/blob/main/README.rst"
               ]
-              [ text "Minmal cake-k base" ] ]
+              [ text "README" ] ]
           ]
   , div [ class ukCard ]
     [ div [ class "uk-overflow-auto" ]
