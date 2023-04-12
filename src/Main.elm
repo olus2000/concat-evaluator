@@ -5,7 +5,7 @@ import Browser
 import Html exposing (Html, button, div, text, br, input, code, textarea, span,
                       table, caption, thead, tr, th, tbody, td, a)
 import Html.Attributes exposing (class, style, value, placeholder, attribute,
-                                 colspan, href)
+                                 colspan, href, rel, target)
 import Html.Events exposing (onClick, onInput)
 import Dict exposing (Dict)
 import Array exposing (Array)
@@ -125,6 +125,63 @@ consSap =
   ]
 
 
+becc : List OperatorModel
+becc =
+  [ { name = "+", arity = 1, id = 0
+    , result = Ok [ Tree [ Node 1 ], Tree [ Node 1 ] ]
+    , body = "[ 1 ] [ 1 ]"
+    }
+  , { name = "-", arity = 2, id = 0
+    , result = Ok [ Node 1 ]
+    , body = "1"
+    }
+  , { name = ">", arity = 2, id = 0
+    , result = Ok [ Tree [ Tree [ Node 2 ], Node 1 ] ]
+    , body = "[ [ 2 ] 1 ]"
+    }
+  , { name = "<", arity = 2, id = 0
+    , result = Ok [ Tree [ Node 2, Tree [ Node 1 ] ] ]
+    , body = "[ 1 [ 2 ] ]"
+    }
+  ]
+
+
+initWords : List WordModel
+initWords =
+  [ { name = "take", id = 0
+    , result = Ok [ Node "swap", Node "quote", Node "cat" ]
+    , body = "( [A] [B] -- [B[A]] ) swap quote cat"
+    }
+  , { name = "dip", id = 1
+    , result = Ok [ Node "take", Node "call" ]
+    , body = "( [A] [B] -- B [A] ) take call"
+    }
+  , { name = "cons", id = 2
+    , result = Ok [ Node "swap", Node "quote", Node "swap", Node "cat" ]
+    , body = "( [A] [B] -- [[A]B] ) swap quote swap cat"
+    }
+  , { name = "over", id = 6
+    , result = Ok [ Tree [ Node "dup" ], Node "dip", Node "swap" ]
+    , body = "( a b -- a b a ) [ dup ] dip swap"
+    }
+  , { name = "rot", id = 3
+    , result = Ok [ Tree [ Node "swap" ], Node "dip", Node "swap" ]
+    , body = "( a b c -- b c a ) [ swap ] dip swap"
+    }
+  , { name = "-rot", id = 4
+    , result = Ok [ Node "swap", Tree [ Node "swap" ], Node "dip" ]
+    , body = "( a b c -- c a b ) swap [ swap ] dip"
+    }
+  , { name = "fix", id = 5
+    , result = Ok
+      [ Tree [ Node "dup", Node "cons" ]
+      , Node "swap", Node "cat", Node "dup", Node "cons" ]
+    , body = "( ( A ( A -- B ) -- B ) -- ( A -- B ) ) "
+          ++ "[ dup cons ] swap cat dup cons"
+    }
+  ]
+
+
 -- MODEL
 
 
@@ -164,9 +221,26 @@ newOperator time =
   }
 
 
+type alias WordModel =
+  { name : String
+  , body : String
+  , result : Result Error Expression
+  , id : Int
+  }
+
+
+newWord : Posix -> WordModel
+newWord time =
+  { name = ""
+  , body = ""
+  , result = Ok []
+  , id = posixToMillis time
+  }
+
+
 type alias Model =
-  { dictionary : Dictionary -- unuseddd
-  , operators : List OperatorModel
+  { operators : List OperatorModel
+  , words : List WordModel
   , expression : String
   , step : Int
   , result : Result Error Expression
@@ -175,13 +249,8 @@ type alias Model =
 
 init : () -> ( Model, Cmd a )
 init _ =
-  ( { dictionary =
-      { operators = Dict.empty
-      , words = Dict.empty
-      , zero = Nothing
-      , succ = Nothing
-      }
-    , operators = defaultOperators
+  ( { operators = defaultOperators
+    , words = initWords
     , expression = ""
     , step = 0
     , result = Ok []
@@ -213,6 +282,14 @@ parseOperator operator =
   { operator | result = checkName operator.name
     |> Maybe.map Err
     |> Maybe.withDefault (parseSkeleton operator.arity operator.body)
+  }
+
+
+parseWord : WordModel -> WordModel
+parseWord word =
+  { word | result = checkName word.name
+    |> Maybe.map Err
+    |> Maybe.withDefault (parseExpression word.body)
   }
 
 
@@ -292,6 +369,8 @@ parseExpressionTree tokens =
             Err e -> Err e
             Ok ( l, unparsed ) -> Ok ( Tree expression :: l, unparsed )
         Ok ( _, _ ) -> Err ( Error [ "Unclosed \"[\"" ] )
+    ( "(" :: tail ) ->
+      parseComment tail |> Result.andThen parseExpressionTree
     ( s :: tail ) ->
       case parseExpressionNode s of
         Err e -> Err e
@@ -308,28 +387,42 @@ parseExpressionNode token =
   else Ok token
 
 
+parseComment : List String -> Result Error (List String)
+parseComment tokens =
+  case tokens of
+    [] -> Err ( Error [ "Unclosed \"(\"" ] )
+    ( "(" :: tail ) -> parseComment tokens |> Result.andThen parseComment
+    ( ")" :: tail ) -> Ok tail
+    ( _ :: tail ) -> parseComment tail
+
+
 -- REDUCTION
 
 
-reduce : Dict String Operator -> Int -> Expression -> Expression -> Expression
-reduce operators limit expr stack =
+reduce : Dictionary -> Int -> Expression -> Expression -> Expression
+reduce dictionary limit expr stack =
   if limit <= 0 then (List.reverse stack) ++ expr
   else
     case expr of
       [] -> List.reverse stack
       ( Node op :: rest ) ->
-        case Dict.get op operators of
-          Nothing -> reduce operators limit rest ( Node op :: stack )
+        case Dict.get op dictionary.operators of
+          Nothing ->
+            case Dict.get op dictionary.words of
+              Nothing ->
+                reduce dictionary limit rest ( Node op :: stack )
+              Just word ->
+                reduce dictionary ( limit - 1 ) ( word ++ rest ) stack
           Just operator ->
             case topQuotes operator.arity stack of
-              Nothing -> reduce operators limit rest ( Node op :: stack )
+              Nothing -> reduce dictionary limit rest ( Node op :: stack )
               Just arguments ->
                 let
                   new_stack = List.drop operator.arity stack
                   new_expr = ( instantiate arguments operator.skeleton ) ++ rest
                 in
-                  reduce operators (limit - 1) new_expr new_stack
-      ( head :: tail ) -> reduce operators limit tail ( head :: stack )
+                  reduce dictionary (limit - 1) new_expr new_stack
+      ( head :: tail ) -> reduce dictionary limit tail ( head :: stack )
 
 
 instantiate : Array Expression -> Skeleton -> Expression
@@ -377,6 +470,9 @@ type Msg
   = UpdateOp OperatorModel (OperatorModel -> OperatorModel)
   | NewOp Posix
   | DelOp OperatorModel
+  | UpdateWord WordModel (WordModel -> WordModel)
+  | NewWord Posix
+  | DelWord WordModel
   | Timed (Posix -> Msg)
   | UpdateExpr String
   | Step Int
@@ -401,6 +497,21 @@ update msg model =
       ( { model | operators = List.filter ( (/=) operator ) model.operators }
       , Cmd.none
       )
+    UpdateWord word transform ->
+      ( { model | words = List.map
+        ( \x -> if x == word then transform x |> parseWord else x )
+        model.words
+        }
+      , Cmd.none
+      )
+    NewWord time ->
+      ( { model | words = newWord time :: model.words }
+      , Cmd.none
+      )
+    DelWord word ->
+      ( { model | words = List.filter ( (/=) word ) model.words }
+      , Cmd.none
+      )
     Timed makeMsg -> ( model, perform makeMsg now )
     UpdateExpr s ->
       ( { model
@@ -415,7 +526,7 @@ update msg model =
           if n < 0 then
             ( { model
               | result = reduce
-                ( buildOpDict model.operators )
+                ( buildDict model )
                 ( model.step + n |> max 0 )
                 ( parseExpression model.expression |> Result.withDefault [] )
                 []
@@ -426,7 +537,7 @@ update msg model =
             )
           else
             ( { model
-              | result = reduce ( buildOpDict model.operators ) n expression []
+              | result = reduce ( buildDict model ) n expression []
                 |> Ok
               , step = model.step + n |> max 0
               }
@@ -435,6 +546,14 @@ update msg model =
     Preset operators ->
       ( { model | operators = operators }, Cmd.none )
 
+
+buildDict : Model -> Dictionary
+buildDict model =
+  { operators = buildOpDict model.operators
+  , words = buildWordDict model.words
+  , zero = Nothing
+  , succ = Nothing
+  }
 
 
 buildOpDict : List OperatorModel -> Dict String Operator
@@ -447,6 +566,16 @@ buildOpDict operators =
   |> Dict.fromList
 
 
+buildWordDict : List WordModel -> Dict String Expression
+buildWordDict wordList =
+  List.filterMap
+  ( \x -> case x.result of
+      Err _ -> Nothing
+      Ok expr -> Just (x.name, expr)
+  ) wordList
+  |> Dict.fromList
+
+
 -- SETTERS
 
 
@@ -456,10 +585,6 @@ setArity new obj = { obj | arity = new }
 
 setName : b -> { a | name : b } -> { a | name : b }
 setName new obj = { obj | name = new }
-
-
-setComment : b -> { a | comment : b } -> { a | comment : b }
-setComment new obj = { obj | comment = new }
 
 
 setBody : b -> { a | body : b } -> { a | body : b }
@@ -519,45 +644,17 @@ view model =
         , attribute "uk-grid" ""
         , attribute "uk-height-match" "target: > div > *"
         ]
-          [ div []
-            [ button
-              [ class """uk-button uk-button-primary uk-button-small
-                         uk-width-expand"""
-              , onClick (Timed NewOp)
-              ]
-              [ text "New operator" ] ]
-          , div []
-            [ button
-              [ class """uk-button uk-button-primary uk-button-small
-                         uk-width-expand"""
-              , onClick (Preset defaultOperators)
-              ]
-              [ text "Standard operators" ] ]
-          , div []
-            [ button
-              [ class """uk-button uk-button-primary uk-button-small
-                         uk-width-expand"""
-              , onClick (Preset cakeK)
-              ]
-              [ text "Minmal base" ] ]
-          , div []
-            [ button
-              [ class """uk-button uk-button-primary uk-button-small
-                         uk-width-expand"""
-              , onClick (Preset coupSap)
-              ]
-              [ text "Conservative base" ] ]
-          , div []
-            [ button
-              [ class """uk-button uk-button-primary uk-button-small
-                         uk-width-expand"""
-              , onClick (Preset consSap)
-              ]
-              [ text "Linear base" ] ]
+          [ presetButton "Standard operators" (Preset defaultOperators)
+          , presetButton "Minimal base" (Preset cakeK)
+          , presetButton "Conservative base" (Preset coupSap)
+          , presetButton "Linear base" (Preset consSap)
+          , presetButton "Brainfuck Encoded" (Preset becc)
           , div []
             [ a
               [ href
               "https://github.com/olus2000/concat-evaluator/blob/main/README.rst"
+              , target "_blank"
+              , rel "noreferrer noopener"
               ]
               [ button [ class """uk-button uk-button-primary uk-button-small
                                uk-width-expand uk-height-1-1"""
@@ -577,7 +674,31 @@ view model =
           , th [] []
           ] ]
         , tbody []
-          ( List.concatMap operatorRow model.operators  )
+          ( tr [ onClick (Timed NewOp) ]
+            [ td [ colspan 7 ]
+                 [ text "Add operator" ] ]
+          :: List.concatMap operatorRow model.operators 
+          )
+        ]
+      ]
+    ]
+  , div [ class ukCard ]
+    [ div [ class "uk-overflow-auto" ]
+      [ table [ class ( "uk-table uk-table-justify uk-table-small "
+                     ++ "uk-table-divider" ) ]
+        [ caption [] [ text "Word definitions" ]
+        , thead [] [ tr []
+          [ th [] [ text "Name" ]
+          , th [] []
+          , th [] [ text "Substitution" ]
+          , th [] []
+          ] ]
+        , tbody []
+          ( tr [ onClick (Timed NewWord) ]
+            [ td [ colspan 4 ]
+                 [ text "Add word" ] ]
+          :: List.concatMap wordRow model.words
+          )
         ]
       ]
     ]
@@ -600,6 +721,60 @@ view model =
                ++ expressionToString expr |> text ] ]
     )
   ]
+
+
+presetButton : String -> msg -> Html msg
+presetButton name message =
+  div []
+  [ button
+    [ class """uk-button uk-button-primary uk-button-small
+               uk-width-expand"""
+    , onClick message
+    ]
+    [ text name ]
+  ]
+
+
+
+wordRow : WordModel -> List (Html Msg)
+wordRow word = 
+  [ tr []
+    -- name
+    [ td [ class "uk-table-shrink" ]
+      [ input [ class "uk-input uk-form-width-medium"
+              , placeholder "name"
+              , value word.name
+              , onInput ( setName >> UpdateWord word )
+              , style "font-family" "monospace"
+              , style "height" "30px"
+              ] []
+      ]
+    , td [ class "uk-table-shrink uk-padding-remove-horizontal" ] [ arrow ]
+      -- body
+    , td [ class "uk-table-expand" ]
+      [ input [ class "uk-input uk-width-expand@m"
+              , placeholder "Example: swap quote cat call"
+              , value word.body
+              , onInput ( setBody >> UpdateWord word )
+              , style "font-family" "monospace"
+              , style "height" "30px"
+              ] []
+      ]
+    , td [ class "uk-table-shrink uk-padding-remove-horizontal" ]
+      [ span
+        [ attribute "uk-icon" "icon: trash"
+        , class "uk-preserve-width"
+        , DelWord word |> onClick
+        ] []
+      ]
+    ]
+  ] ++
+  -- error
+  ( case word.result of
+      Err message -> [ tr [] [ td [ colspan 7, class "uk-text-danger" ]
+                                  ( errorHtml message ) ] ]
+      Ok skeleton -> []
+  )
 
 
 operatorRow : OperatorModel -> List (Html Msg)
@@ -662,7 +837,7 @@ operatorRow operator =
   ] ++
   -- error
   ( case operator.result of
-      Err message -> [ tr [] [ td [ colspan 5, class "uk-text-danger" ]
+      Err message -> [ tr [] [ td [ colspan 7, class "uk-text-danger" ]
                                   ( errorHtml message ) ] ]
       Ok skeleton -> []
   )

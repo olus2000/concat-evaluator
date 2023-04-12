@@ -48,6 +48,25 @@ that duplicates a quotation::
     [ 1 ] dup -> [ 1 ] [ 1 ]
 
 
+Words
+-----
+
+You may see that some code snippets are used often in bigger expressions. You
+can name the snippets, and whenever the evaluator encounters them it will
+replace them with their definition.
+
+
+Comments
+--------
+
+Just looking at CC expressions often doesn't easily convey what the expression
+does, especially if it uses few words and many operators. You can put text in
+parenthesis to help anyone who reads it understand its purpose. Comments can be
+nested in one another and span multiple lines, but both parenthesis must be
+separated from surrounding text with spaces! You can use comments in word
+definitions and in the main expression.
+
+
 The stack
 ---------
 
@@ -60,16 +79,18 @@ on the top values of the stack.
 Functionality
 =============
 
-Operators can be created using the ``NEW OPERATOR`` button, edited using their
+Operators can be created using the ``Add operator`` row, edited using their
 interface and deleted using the trash icon. For the meaning of operator
 interface see Operators_. Operators with errors will not be included in
 evalutation.
+
+Similar interface exists for word definitions.
 
 Help button links to this file or a halp page if I make it.
 
 The rest of the top buttons will set the operators to one of preset bases.
 
-After you enter the expression into the textbox at the bottom and resolved any
+After you enter the expression into the textbox at the bottom and resolve any
 errors you can step through its evaluation using the buttons below the textbox.
 
 
