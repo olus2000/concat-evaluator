@@ -3,10 +3,10 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (Html, button, div, text, br, input, code, textarea, span,
-                      table, caption, thead, tr, th, tbody, td, a)
+                      table, caption, thead, tr, th, tbody, td, a, label)
 import Html.Attributes exposing (class, style, value, placeholder, attribute,
-                                 colspan, href, rel, target)
-import Html.Events exposing (onClick, onInput)
+                                 colspan, href, rel, target, type_, checked)
+import Html.Events exposing (onClick, onInput, onCheck)
 import Dict exposing (Dict)
 import Array exposing (Array)
 import String exposing (lines)
@@ -195,11 +195,17 @@ type alias Operator =
   }
 
 
+type Nats
+  = NoNats
+  | JustZero Expression
+  | Both Expression Expression
+  
+
+
 type alias Dictionary =
   { operators : Dict String Operator
   , words : Dict String Expression
-  , zero : Maybe Expression
-  , succ : Maybe Expression
+  , nats : Nats
   }
 
 
@@ -238,12 +244,21 @@ newWord time =
   }
 
 
+type alias NatModel =
+  { body : String
+  , result : Result Error Expression
+  , enabled : Bool
+  }
+
+
 type alias Model =
   { operators : List OperatorModel
   , words : List WordModel
   , expression : String
   , step : Int
   , result : Result Error Expression
+  , zero : NatModel
+  , succ : NatModel
   }
 
 
@@ -254,6 +269,18 @@ init _ =
     , expression = ""
     , step = 0
     , result = Ok []
+    , zero =
+      { body = "[ drop ]"
+      , result = Ok [ Tree [ Node "drop" ] ]
+      , enabled = True
+      }
+    , succ =
+      { body = "[ dup quote cat call ] swap cat"
+      , result = Ok
+        [ Tree [ Node "dup", Node "quote", Node "cat", Node "call" ]
+        , Node "swap", Node "cat" ]
+      , enabled = True
+      }
     }
   , Cmd.none
   )
@@ -410,7 +437,21 @@ reduce dictionary limit expr stack =
           Nothing ->
             case Dict.get op dictionary.words of
               Nothing ->
-                reduce dictionary limit rest ( Node op :: stack )
+                case dictionary.nats of
+                  NoNats ->
+                    reduce dictionary limit rest ( Node op :: stack )
+                  JustZero zeroExpr ->
+                    case String.toInt op of
+                      Just 0 ->
+                        reduce dictionary (limit - 1) ( zeroExpr ++ rest ) stack
+                      _ -> reduce dictionary limit rest ( Node op :: stack )
+                  Both zeroExpr succExpr ->
+                    let n = String.toInt op |> Maybe.withDefault -1 in
+                      if n < 0 then
+                        reduce dictionary limit rest ( Node op :: stack )
+                      else
+                        reduce dictionary (limit - 1)
+                        ( makeNat zeroExpr succExpr n ++ rest ) stack
               Just word ->
                 reduce dictionary ( limit - 1 ) ( word ++ rest ) stack
           Just operator ->
@@ -463,6 +504,11 @@ makeTree x rest =
         Node _ -> Nothing
 
 
+makeNat : Expression -> Expression -> Int -> Expression
+makeNat zero succ n =
+  List.repeat n succ |> List.concat |> (++) zero
+
+
 -- UPDATE
 
 
@@ -477,6 +523,10 @@ type Msg
   | UpdateExpr String
   | Step Int
   | Preset (List OperatorModel)
+  | UpdateZero String
+  | ToggleZero Bool
+  | UpdateSuccessor String
+  | ToggleSuccessor Bool
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -519,6 +569,34 @@ update msg model =
         , result = parseExpression s
         , step = 0
       }, Cmd.none )
+    UpdateZero s ->
+      let zero = model.zero in
+        ( { model | zero = { zero
+          | body = s
+          , result = parseExpression s
+          } }, Cmd.none )
+    ToggleZero b ->
+      let zero = model.zero
+          succ = model.succ
+      in
+        ( { model
+          | zero = { zero | enabled = b }
+          , succ = { succ | enabled = succ.enabled && b }
+          }, Cmd.none )
+    UpdateSuccessor s ->
+      let succ = model.succ in
+        ( { model | succ = { succ
+          | body = s
+          , result = parseExpression s
+          } }, Cmd.none )
+    ToggleSuccessor b ->
+      let succ = model.succ
+          zero = model.zero
+      in
+        ( { model
+          | succ = { succ | enabled = b }
+          , zero = { zero | enabled = zero.enabled || b }
+          }, Cmd.none )
     Step n ->
       case model.result of
         Err _ -> ( model, Cmd.none )
@@ -551,9 +629,20 @@ buildDict : Model -> Dictionary
 buildDict model =
   { operators = buildOpDict model.operators
   , words = buildWordDict model.words
-  , zero = Nothing
-  , succ = Nothing
+  , nats = buildNats model.zero model.succ
   }
+
+
+buildNats : NatModel -> NatModel -> Nats
+buildNats zero succ =
+  if zero.enabled then
+    case zero.result of
+      Err _ -> NoNats
+      Ok zeroExpr ->
+        case if succ.enabled then Result.toMaybe succ.result else Nothing of
+          Just succExpr -> Both zeroExpr succExpr
+          Nothing -> JustZero zeroExpr
+  else NoNats
 
 
 buildOpDict : List OperatorModel -> Dict String Operator
@@ -680,6 +769,76 @@ view model =
           :: List.concatMap operatorRow model.operators 
           )
         ]
+      ]
+    ]
+  , div [ class ukCard ]
+    [ div [ class "uk-grid uk-grid-small" ]
+      [ div [ class "uk-column uk-width-1-3@m" ]
+        ( [ div [ class "uk-grid uk-grid-small"
+                , attribute "uk-height-match" "target: > div > *" ]
+            [ div [ class "uk-column uk-margin-auto-vertical" ]
+              [ label []
+                [ input
+                  [ class "uk-checkbox"
+                  , type_ "checkbox"
+                  , checked model.zero.enabled
+                  , onCheck ToggleZero
+                  ] []
+                , text " Zero"
+                ]
+              ]
+            , div [ class "uk-column uk-width-expand" ]
+              [ input
+                [ class "uk-input uk-width-expand"
+                , placeholder "Zero expression"
+                , value model.zero.body
+                , onInput UpdateZero
+                , style "font-family" "monospace"
+                --, style "height" "30px"
+                ] []
+              ]
+            ]
+          ] ++
+          -- error
+          ( case model.zero.result of
+              Err message ->
+                [ div [ class "uk-text-danger" ] ( errorHtml message ) ]
+              Ok skeleton -> []
+          )
+        )
+      , div [ class "uk-column uk-width-expand" ]
+        ( [ div [ class "uk-grid uk-grid-small"
+                , attribute "uk-height-match" "target: > div > *" ]
+            [ div [ class "uk-column uk-margin-auto-vertical" ]
+              [ label []
+                [ input
+                  [ class "uk-checkbox"
+                  , type_ "checkbox"
+                  , checked model.succ.enabled
+                  , onCheck ToggleSuccessor
+                  ] []
+                , text " Successor"
+                ]
+              ]
+            , div [ class "uk-column uk-width-expand" ]
+              [ input
+                [ class "uk-input uk-width-expand"
+                , placeholder "Zero expression"
+                , value model.succ.body
+                , onInput UpdateSuccessor
+                , style "font-family" "monospace"
+                --, style "height" "30px"
+                ] []
+              ]
+            ]
+          ] ++
+          -- error
+          ( case model.succ.result of
+              Err message ->
+                [ div [ class "uk-text-danger" ] ( errorHtml message ) ]
+              Ok skeleton -> []
+          )
+        )
       ]
     ]
   , div [ class ukCard ]

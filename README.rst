@@ -8,6 +8,10 @@ own base operators as well as chosing from several presets, and evaluating
 expressions using those operators. In the future it is planned to add support
 for defining words as reusable code snippets.
 
+It's currently hosted on the `QWD software`_ page.
+
+.. _QWD software: https://qwd.software/home/olus2000/concat-eval.html
+
 
 Concantenative calculus overview
 ================================
@@ -55,6 +59,21 @@ You may see that some code snippets are used often in bigger expressions. You
 can name the snippets, and whenever the evaluator encounters them it will
 replace them with their definition.
 
+In standard CC words either don't exist or can only have non-recursive
+definitions. Concat Eval doesn't check for recursion in definitions though, so
+you are free to experiment outside the classical rules.
+
+
+Numbers
+-------
+
+As in many math-level computer science settings you can define natural numbers
+as functions that do something N times with their argument. In this tool it's
+done by defining an expression representing zero, and a successor expression
+representing a function that increments a number. If you define both then
+natural numbers in expressions will be replaced with a zero expression followed
+by an appropriate number of successor expressions.
+
 
 Comments
 --------
@@ -63,8 +82,8 @@ Just looking at CC expressions often doesn't easily convey what the expression
 does, especially if it uses few words and many operators. You can put text in
 parenthesis to help anyone who reads it understand its purpose. Comments can be
 nested in one another and span multiple lines, but both parenthesis must be
-separated from surrounding text with spaces! You can use comments in word
-definitions and in the main expression.
+separated from surrounding text with spaces! You can use comments in word and
+number definitions and in the main expression.
 
 
 The stack
@@ -85,6 +104,10 @@ interface see Operators_. Operators with errors will not be included in
 evalutation.
 
 Similar interface exists for word definitions.
+
+You can toggle the replacement of numbers with zero-successor expressions using
+the checkboxes. The replacement will not occur if the appropriate expression has
+an error.
 
 Help button links to this file or a halp page if I make it.
 
