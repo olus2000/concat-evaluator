@@ -83,6 +83,35 @@ defaultOperators =
   ]
 
 
+favourite : List OperatorModel
+favourite =
+  [ { name = "dup",   arity = 1, id = 0
+    , result = Ok [ Tree [ Node 1 ], Tree [ Node 1 ] ]
+    , body = "[ 1 ] [ 1 ]"
+    }
+  , { name = "drop",  arity = 1, id = 1
+    , result = Ok [ ]
+    , body = ""
+    }
+  , { name = "swap",  arity = 2, id = 2
+    , result = Ok [ Tree [ Node 1 ], Tree [ Node 2 ] ]
+    , body = "[ 1 ] [ 2 ]"
+    }
+  , { name = "cons", arity = 2, id = 3
+    , result = Ok [ Tree [ Tree [ Node 2 ], Node 1 ] ]
+    , body = "[ [ 2 ] 1 ]"
+    }
+  , { name = "dip",   arity = 2, id = 4
+    , result = Ok [ Node 1, Tree [ Node 2 ] ]
+    , body = "1 [ 2 ]"
+    }
+  , { name = "call",  arity = 1, id = 5
+    , result = Ok [ Node 1 ]
+    , body = "1"
+    }
+  ]
+
+
 cakeK : List OperatorModel
 cakeK =
   [ { name = "cake", arity = 2, id = 0
@@ -160,19 +189,19 @@ initWords =
     , result = Ok [ Node "swap", Node "quote", Node "swap", Node "cat" ]
     , body = "( [A] [B] -- [[A]B] ) swap quote swap cat"
     }
-  , { name = "over", id = 6
+  , { name = "over", id = 3
     , result = Ok [ Tree [ Node "dup" ], Node "dip", Node "swap" ]
     , body = "( a b -- a b a ) [ dup ] dip swap"
     }
-  , { name = "rot", id = 3
+  , { name = "rot", id = 4
     , result = Ok [ Tree [ Node "swap" ], Node "dip", Node "swap" ]
     , body = "( a b c -- b c a ) [ swap ] dip swap"
     }
-  , { name = "-rot", id = 4
+  , { name = "-rot", id = 5
     , result = Ok [ Node "swap", Tree [ Node "swap" ], Node "dip" ]
     , body = "( a b c -- c a b ) swap [ swap ] dip"
     }
-  , { name = "fix", id = 5
+  , { name = "fix", id = 6
     , result = Ok
       [ Tree [ Node "dup", Node "cons" ]
       , Node "swap", Node "cat", Node "dup", Node "cons" ]
@@ -738,17 +767,7 @@ view model =
           , presetButton "Conservative base" (Preset coupSap)
           , presetButton "Linear base" (Preset consSap)
           , presetButton "Brainfuck Encoded" (Preset becc)
-          , div []
-            [ a
-              [ href
-              "https://github.com/olus2000/concat-evaluator/blob/main/README.rst"
-              , target "_blank"
-              , rel "noreferrer noopener"
-              ]
-              [ button [ class """uk-button uk-button-primary uk-button-small
-                               uk-width-expand uk-height-1-1"""
-              ]
-              [ text "README" ] ] ]
+          , presetButton "My favourite" (Preset favourite)
           ]
   , div [ class ukCard ]
     [ div [ class "uk-overflow-auto" ]
