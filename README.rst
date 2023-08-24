@@ -31,8 +31,7 @@ word, other than brackets. Any string of whitespace-separated words with
 balanced brackets is a valid expression. Expressions in brackets are called
 quotations or quotes.
 
-This tool additionally restricts the words ``(``, ``--`` and ``)`` for future
-use.
+This tool additionally restricts the word ``--`` for future use.
 
 
 Operators
@@ -80,9 +79,9 @@ Comments
 
 Just looking at CC expressions often doesn't easily convey what the expression
 does, especially if it uses few words and many operators. You can put text in
-parenthesis to help anyone who reads it understand its purpose. Comments can be
-nested in one another and span multiple lines, but both parenthesis must be
-separated from surrounding text with spaces! You can use comments in word and
+parenthesis ``( )`` to help anyone who reads it understand its purpose. Comments
+can be nested in one another and span multiple lines, but both parenthesis must
+be separated from surrounding text with spaces! You can use comments in word and
 number definitions and in the main expression.
 
 
