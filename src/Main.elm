@@ -13,13 +13,22 @@ import String exposing (lines)
 import Time exposing (Posix, now, posixToMillis)
 import Task exposing (perform)
 import Set exposing (Set)
+import File.Select as Select
+import File
 
 
 words : String -> List String
 words s =
   case String.trim s of
     "" -> []
-    _ -> String.words s
+    trimmed -> String.words trimmed
+
+
+lines : String -> List String
+lines s =
+  case String.trim s of
+    "" -> []
+    trimmed -> String.lines trimmed
 
 
 -- MAIN
@@ -49,6 +58,98 @@ treeMap f tree =
       Tree (List.map (treeMap f) branches)
 
     Node v -> Node (f v)
+
+
+-- IMPORT
+
+
+fileTuple a b c d =
+  { ops = a
+  , math = b
+  , words = c
+  , expr = d
+  }
+
+
+parseFile : String -> Model
+parseFile s =
+  let
+      f = splitFile s
+      (zero, succ) = parseMath f.math
+  in
+  { operators = parseOperators f.ops
+  , words = parseWords f.words
+  , expression = f.expr
+  , step = 0
+  , result = parseExpression f.expr
+  , zero = zero
+  , succ = succ
+  }
+
+
+-- splitFile : String -> (String, String, String, String)
+splitFile f = case String.split "\n\n" f of
+  [] -> fileTuple "" "" "" ""
+  [a] -> fileTuple a "" "" ""
+  [a, b] -> fileTuple a b "" ""
+  a :: b :: c :: d -> fileTuple a b c (String.join "\n\n" d)
+
+
+parseOperators : String -> List OperatorModel
+parseOperators = lines >> List.indexedMap parseOperatorLine
+
+
+parseOperatorLine : Int -> String -> OperatorModel
+parseOperatorLine id s =
+  let
+      (arity, name, body) = case words s of
+        [] -> ("", "", "")
+        [a] -> (a, "", "")
+        a :: b :: c -> (a, b, String.join " " c)
+  in
+  { arity = String.toInt arity |> Maybe.withDefault 0
+  , name = name
+  , body = body
+  , result = Ok []
+  , id = id
+  } |> parseOperator
+
+
+parseWords : String -> List WordModel
+parseWords = lines >> List.indexedMap parseWordLine
+
+
+parseWordLine : Int -> String -> WordModel
+parseWordLine id s =
+  let
+      (name, body) = case words s of
+        [] -> ("", "")
+        a :: b -> (a, String.join " " b)
+  in
+  { name = name
+  , body = body
+  , result = Ok []
+  , id = id
+  } |> parseWord
+
+
+parseMath : String -> (NatModel, NatModel)
+parseMath s =
+  let
+      (zero, succ) = case lines s of
+        [] -> ("", "")
+        [a] -> (a, "")
+        a :: b :: _ -> (a, b)
+  in
+  (parseMathLine zero, parseMathLine succ)
+
+
+parseMathLine : String -> NatModel
+parseMathLine s =
+  { body = s
+  , result = parseExpression s
+  , enabled = s /= ""
+  }
 
 
 -- PRESETS
@@ -125,6 +226,19 @@ cakeK =
     , body = "1"
     }
   ]
+
+
+cakeKModel : Model
+cakeKModel = parseFile
+  """2 cake [ [ 2 ] 1 ] [ 1 [ 2 ] ]
+2 k 1
+
+
+
+drop [ ] k
+
+[ A ] [ B ] cake"""
+
 
 
 coupSap : List OperatorModel
@@ -552,10 +666,13 @@ type Msg
   | UpdateExpr String
   | Step Int
   | Preset (List OperatorModel)
+  | LoadModel Model
   | UpdateZero String
   | ToggleZero Bool
   | UpdateSuccessor String
   | ToggleSuccessor Bool
+  | Import
+  | LoadFile File.File
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -652,6 +769,10 @@ update msg model =
             )
     Preset operators ->
       ( { model | operators = operators }, Cmd.none )
+    LoadModel m -> ( m, Cmd.none )
+    Import -> ( model, Select.file ["text/*"] LoadFile )
+    LoadFile f ->
+      ( model, File.toString f |> perform (parseFile >> LoadModel) )
 
 
 buildDict : Model -> Dictionary
@@ -763,11 +884,11 @@ view model =
         , attribute "uk-height-match" "target: > div > *"
         ]
           [ presetButton "Standard operators" (Preset defaultOperators)
-          , presetButton "Minimal base" (Preset cakeK)
+          , presetButton "Minimal base" (LoadModel cakeKModel)
           , presetButton "Conservative base" (Preset coupSap)
           , presetButton "Linear base" (Preset consSap)
           , presetButton "Brainfuck Encoded" (Preset becc)
-          , presetButton "My favourite" (Preset favourite)
+          , presetButton "Import" (Import)
           ]
   , div [ class ukCard ]
     [ div [ class "uk-overflow-auto" ]
@@ -842,7 +963,7 @@ view model =
             , div [ class "uk-column uk-width-expand" ]
               [ input
                 [ class "uk-input uk-width-expand"
-                , placeholder "Zero expression"
+                , placeholder "Successor expression"
                 , value model.succ.body
                 , onInput UpdateSuccessor
                 , style "font-family" "monospace"
@@ -885,6 +1006,7 @@ view model =
       [ class "uk-textarea"
       , placeholder "Expression..."
       , style "font-family" "monospace"
+      , value model.expression
       , onInput UpdateExpr
       ] []
       :: 
