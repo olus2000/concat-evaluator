@@ -110,10 +110,69 @@ an error.
 
 Help button links to this file or a halp page if I make it.
 
-The rest of the top buttons will set the operators to one of preset bases.
+The blue buttons under the title will set the operators to one of preset bases
+and allow `importing and exporting`_ presets as text files.
 
 After you enter the expression into the textbox at the bottom and resolve any
 errors you can step through its evaluation using the buttons below the textbox.
+
+
+.. _importing and exporting: `Import/Export format`_
+
+
+Import/Export format
+====================
+
+Just like the application UI an exported file consists of four parts: operators,
+numbers, words and an expression. Sections are separated by two newline
+characters, which usually correspond to one empty line. However if a section is
+empty it should still be separated by two newlines from other sections, which
+will correspond to three or more empty lines. Examples of the format can be seen
+in the examples_ folder.
+
+
+.. _examples: ./examples/
+
+
+Operators
+---------
+
+Operator definitions are placed in separate consecutive lines. Each operator
+requires defining its arity (how many argument it has), name and definition. For
+example this is how operators for the minimal base are defined::
+
+  2 cake [ [ 2 ] 1 ] [ 1 [ 2 ] ]
+  1 k    1
+
+
+Numbers
+-------
+
+The numbers section includes definitions of Zero and Successor in its first two
+lines, in that order. Any additional lines will be ignored. For example this is
+how numbers are defined for the default operator base::
+
+  [ drop ]
+  [ dup quote cat call ] swap cat
+
+
+Words
+-----
+
+Definitions of words are placed in separate consecutive lines, just like
+operators. Each line consists of the name of a word and its definition. For
+example these are representations of some of the default words::
+
+  take ( [A] [B] -- [B[A]] ) swap quote cat
+  dip ( [A] [B] -- B [A] ) take call
+  cons ( [A] [B] -- [[A]B] ) swap quote swap cat
+
+
+Expression
+----------
+
+The rest of the file contains a concatenative calculus expression without any
+restrictions on its format.
 
 
 Compilation
@@ -135,8 +194,8 @@ Credits
 =======
 
 This software has been created by `Aleksander "olus2000" Sabak`_ in 2023 and 
-released under the `GPL v3 license`_. Thanks to the `QWD community`_ for help!
+released under the `GPL v3 license`_. Thanks to the QWD community for help!
 
 .. _Aleksander "olus2000" Sabak: https://github.com/olus2000
 .. _GPL v3 license: ./LICENSE
-.. _QWD community: https://qwd.software
+.. QWD community: https://qwd.software QWD is no more :(
