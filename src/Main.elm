@@ -9,7 +9,7 @@ import Html.Attributes exposing (class, style, value, placeholder, attribute,
 import Html.Events exposing (onClick, onInput, onCheck)
 import Dict exposing (Dict)
 import Array exposing (Array)
-import String exposing (lines)
+import String
 import Time exposing (Posix, now, posixToMillis)
 import Task exposing (perform)
 import Set exposing (Set)
@@ -155,174 +155,53 @@ parseMathLine s =
 -- PRESETS
 
 
-defaultOperators : List OperatorModel
-defaultOperators =
-  [ { name = "dup",   arity = 1, id = 0
-    , result = Ok [ Tree [ Node 1 ], Tree [ Node 1 ] ]
-    , body = "[ 1 ] [ 1 ]"
-    }
-  , { name = "drop",  arity = 1, id = 1
-    , result = Ok [ ]
-    , body = ""
-    }
-  , { name = "swap",  arity = 2, id = 2
-    , result = Ok [ Tree [ Node 1 ], Tree [ Node 2 ] ]
-    , body = "[ 1 ] [ 2 ]"
-    }
-  , { name = "quote", arity = 1, id = 3
-    , result = Ok [ Tree [ Tree [ Node 1 ] ] ]
-    , body = "[ [ 1 ] ]"
-    }
-  , { name = "cat",   arity = 2, id = 4
-    , result = Ok [ Tree [ Node 2, Node 1 ] ]
-    , body = "[ 2 1 ]"
-    }
-  , { name = "call",  arity = 1, id = 5
-    , result = Ok [ Node 1 ]
-    , body = "1"
-    }
-  ]
+defaultOperators : Model
+defaultOperators = parseFile
+  """
+  1 dup [ 1 ] [ 1 ]
+  1 drop
+  2 swap [ 1 ] [ 2 ]
+  1 quote [ [ 1 ] ]
+  2 cat [ 2 1 ]
+  1 call 1
+
+  [ drop ]
+  [ dup quote cat call ] swap cat
+
+  take ( [A] [B] -- [B[A]] ) swap quote cat
+  dip ( [A] [B] -- B [A] ) take call
+  cons ( [A] [B] -- [[A]B] ) swap quote swap cat
+  over ( a b -- a b a ) [ dup ] dip swap
+  rot ( a b c -- b c a ) [ swap ] dip swap
+  -rot ( a b c -- c a b ) swap [ swap ] dip
+  fix ( ( A ( A -- B ) -- B ) -- ( A -- B ) ) [ dup cons ] swap cat dup cons
+  """
 
 
-favourite : List OperatorModel
-favourite =
-  [ { name = "dup",   arity = 1, id = 0
-    , result = Ok [ Tree [ Node 1 ], Tree [ Node 1 ] ]
-    , body = "[ 1 ] [ 1 ]"
-    }
-  , { name = "drop",  arity = 1, id = 1
-    , result = Ok [ ]
-    , body = ""
-    }
-  , { name = "swap",  arity = 2, id = 2
-    , result = Ok [ Tree [ Node 1 ], Tree [ Node 2 ] ]
-    , body = "[ 1 ] [ 2 ]"
-    }
-  , { name = "cons", arity = 2, id = 3
-    , result = Ok [ Tree [ Tree [ Node 2 ], Node 1 ] ]
-    , body = "[ [ 2 ] 1 ]"
-    }
-  , { name = "dip",   arity = 2, id = 4
-    , result = Ok [ Node 1, Tree [ Node 2 ] ]
-    , body = "1 [ 2 ]"
-    }
-  , { name = "call",  arity = 1, id = 5
-    , result = Ok [ Node 1 ]
-    , body = "1"
-    }
-  ]
+cakeK : Model
+cakeK = parseFile
+  """
+  2 cake [ [ 2 ] 1 ] [ 1 [ 2 ] ]
+  2 k 1
+  """
 
 
-cakeK : List OperatorModel
-cakeK =
-  [ { name = "cake", arity = 2, id = 0
-    , result = Ok [ Tree [ Tree [ Node 2 ], Node 1 ]
-                  , Tree [ Node 1, Tree [ Node 2 ] ]
-                  ]
-    , body = "[ [ 2 ] 1 ] [ 1 [ 2 ] ]"
-    }
-  , { name = "k",    arity = 2, id = 1
-    , result = Ok [ Node 1 ]
-    , body = "1"
-    }
-  ]
+consSap : Model
+consSap = parseFile
+  """
+  2 cons [ [ 2 ] 1 ]
+  2 sap 1 2
+  """
 
 
-cakeKModel : Model
-cakeKModel = parseFile
-  """2 cake [ [ 2 ] 1 ] [ 1 [ 2 ] ]
-2 k 1
-
-
-
-drop [ ] k
-
-[ A ] [ B ] cake"""
-
-
-
-coupSap : List OperatorModel
-coupSap =
-  [ { name = "coup", arity = 3, id = 0
-    , result = Ok [ Tree [ Tree [ Node 3 ], Node 2 ]
-                  , Tree [ Node 1 ], Tree [ Node 1 ] ]
-    , body = "[ [ 3 ] 2 ] [ 1 ] [ 1 ]"
-    }
-  , { name = "sap", arity = 2, id = 1
-    , result = Ok [ Node 1, Node 2 ]
-    , body = "1 2"
-    }
-  ]
-
-
-consSap : List OperatorModel
-consSap =
-  [ { name = "cons", arity = 2, id = 0
-    , result = Ok [ Tree [ Tree [ Node 2 ], Node 1 ] ]
-    , body = "[ [ 2 ] 1 ]"
-    }
-  , { name = "sap", arity = 2, id = 1
-    , result = Ok [ Node 1, Node 2 ]
-    , body = "1 2"
-    }
-  ]
-
-
-becc : List OperatorModel
-becc =
-  [ { name = "+", arity = 1, id = 0
-    , result = Ok [ Tree [ Node 1 ], Tree [ Node 1 ] ]
-    , body = "[ 1 ] [ 1 ]"
-    }
-  , { name = "-", arity = 2, id = 0
-    , result = Ok [ Node 1 ]
-    , body = "1"
-    }
-  , { name = ">", arity = 2, id = 0
-    , result = Ok [ Tree [ Tree [ Node 2 ], Node 1 ] ]
-    , body = "[ [ 2 ] 1 ]"
-    }
-  , { name = "<", arity = 2, id = 0
-    , result = Ok [ Tree [ Node 2, Tree [ Node 1 ] ] ]
-    , body = "[ 1 [ 2 ] ]"
-    }
-  ]
-
-
-initWords : List WordModel
-initWords =
-  [ { name = "take", id = 0
-    , result = Ok [ Node "swap", Node "quote", Node "cat" ]
-    , body = "( [A] [B] -- [B[A]] ) swap quote cat"
-    }
-  , { name = "dip", id = 1
-    , result = Ok [ Node "take", Node "call" ]
-    , body = "( [A] [B] -- B [A] ) take call"
-    }
-  , { name = "cons", id = 2
-    , result = Ok [ Node "swap", Node "quote", Node "swap", Node "cat" ]
-    , body = "( [A] [B] -- [[A]B] ) swap quote swap cat"
-    }
-  , { name = "over", id = 3
-    , result = Ok [ Tree [ Node "dup" ], Node "dip", Node "swap" ]
-    , body = "( a b -- a b a ) [ dup ] dip swap"
-    }
-  , { name = "rot", id = 4
-    , result = Ok [ Tree [ Node "swap" ], Node "dip", Node "swap" ]
-    , body = "( a b c -- b c a ) [ swap ] dip swap"
-    }
-  , { name = "-rot", id = 5
-    , result = Ok [ Node "swap", Tree [ Node "swap" ], Node "dip" ]
-    , body = "( a b c -- c a b ) swap [ swap ] dip"
-    }
-  , { name = "fix", id = 6
-    , result = Ok
-      [ Tree [ Node "dup", Node "cons" ]
-      , Node "swap", Node "cat", Node "dup", Node "cons" ]
-    , body = "( ( A ( A -- B ) -- B ) -- ( A -- B ) ) "
-          ++ "[ dup cons ] swap cat dup cons"
-    }
-  ]
+becc : Model
+becc = parseFile
+  """
+  1 + [ 1 ] [ 1 ]
+  2 - 1
+  2 > [ [ 2 ] 1 ]
+  2 < [ 1 [ 2 ] ]
+  """
 
 
 -- MODEL
@@ -406,27 +285,7 @@ type alias Model =
 
 
 init : () -> ( Model, Cmd a )
-init _ =
-  ( { operators = defaultOperators
-    , words = initWords
-    , expression = ""
-    , step = 0
-    , result = Ok []
-    , zero =
-      { body = "[ drop ]"
-      , result = Ok [ Tree [ Node "drop" ] ]
-      , enabled = True
-      }
-    , succ =
-      { body = "[ dup quote cat call ] swap cat"
-      , result = Ok
-        [ Tree [ Node "dup", Node "quote", Node "cat", Node "call" ]
-        , Node "swap", Node "cat" ]
-      , enabled = True
-      }
-    }
-  , Cmd.none
-  )
+init _ = ( cakeK, Cmd.none )
 
 
 -- PARSERS
@@ -561,7 +420,7 @@ parseComment : List String -> Result Error (List String)
 parseComment tokens =
   case tokens of
     [] -> Err ( Error [ "Unclosed \"(\"" ] )
-    ( "(" :: tail ) -> parseComment tokens |> Result.andThen parseComment
+    ( "(" :: tail ) -> parseComment tail |> Result.andThen parseComment
     ( ")" :: tail ) -> Ok tail
     ( _ :: tail ) -> parseComment tail
 
@@ -665,7 +524,6 @@ type Msg
   | Timed (Posix -> Msg)
   | UpdateExpr String
   | Step Int
-  | Preset (List OperatorModel)
   | LoadModel Model
   | UpdateZero String
   | ToggleZero Bool
@@ -767,8 +625,6 @@ update msg model =
               }
             , Cmd.none
             )
-    Preset operators ->
-      ( { model | operators = operators }, Cmd.none )
     LoadModel m -> ( m, Cmd.none )
     Import -> ( model, Select.file ["text/*"] LoadFile )
     LoadFile f ->
@@ -883,11 +739,11 @@ view model =
         , attribute "uk-grid" ""
         , attribute "uk-height-match" "target: > div > *"
         ]
-          [ presetButton "Standard operators" (Preset defaultOperators)
-          , presetButton "Minimal base" (LoadModel cakeKModel)
-          , presetButton "Conservative base" (Preset coupSap)
-          , presetButton "Linear base" (Preset consSap)
-          , presetButton "Brainfuck Encoded" (Preset becc)
+          [ presetButton "Standard operators" (LoadModel defaultOperators)
+          , presetButton "Minimal base" (LoadModel cakeK)
+          , presetButton "Linear base" (LoadModel consSap)
+          , presetButton "Brainfuck Encoded" (LoadModel becc)
+          , presetButton "Export" (Import)
           , presetButton "Import" (Import)
           ]
   , div [ class ukCard ]
