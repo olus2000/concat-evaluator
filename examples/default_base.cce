@@ -1,0 +1,17 @@
+1 dup   [ 1 ] [ 1 ]
+1 drop
+2 swap  [ 1 ] [ 2 ]
+1 quote [ [ 1 ] ]
+2 cat   [ 2 1 ]
+1 call  1
+
+[ drop ]
+[ dup quote cat call ] swap cat
+
+take ( [A] [B] -- [B[A]] ) swap quote cat
+dip  ( [A] [B] -- B [A] ) take call
+cons ( [A] [B] -- [[A]B] ) swap quote swap cat
+over ( a b -- a b a ) [ dup ] dip swap
+rot  ( a b c -- b c a ) [ swap ] dip swap
+-rot ( a b c -- c a b ) swap [ swap ] dip
+fix  ( ( A ( A -- B ) -- B ) -- ( A -- B ) ) [ dup cons ] swap cat dup cons

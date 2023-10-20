@@ -14,6 +14,7 @@ import Time exposing (Posix, now, posixToMillis)
 import Task exposing (perform)
 import Set exposing (Set)
 import File.Select as Select
+import File.Download as Download
 import File
 
 
@@ -141,15 +142,47 @@ parseMath s =
         [a] -> (a, "")
         a :: b :: _ -> (a, b)
   in
-  (parseMathLine zero, parseMathLine succ)
+  (parseMathLine (String.trim zero), parseMathLine (String.trim succ))
 
 
 parseMathLine : String -> NatModel
-parseMathLine s =
+parseMathLine s = 
   { body = s
   , result = parseExpression s
   , enabled = s /= ""
   }
+
+
+-- EXPORT
+
+exportFile : Model -> String
+exportFile m = String.join "\n\n"
+  [ exportStuff exportOperator m.operators
+  , exportStuff exportMath [m.zero, m.succ]
+  , exportStuff exportWord m.words
+  , m.expression
+  ] |> String.trimRight
+
+
+exportStuff : (a -> Maybe String) -> List a -> String
+exportStuff f = List.filterMap f >> String.join "\n"
+
+
+exportOperator : OperatorModel -> Maybe String
+exportOperator op = String.join " "
+  [ String.fromInt op.arity
+  , if String.length op.name > 0 then op.name else "noname"
+  , op.body
+  ] |> Just
+
+
+exportMath : NatModel -> Maybe String
+exportMath math =
+  if math.enabled then Just math.body else Nothing
+
+
+exportWord : WordModel -> Maybe String
+exportWord word = String.join " " [ word.name, word.body ] |> Just
 
 
 -- PRESETS
@@ -158,23 +191,23 @@ parseMathLine s =
 defaultOperators : Model
 defaultOperators = parseFile
   """
-  1 dup [ 1 ] [ 1 ]
+  1 dup   [ 1 ] [ 1 ]
   1 drop
-  2 swap [ 1 ] [ 2 ]
+  2 swap  [ 1 ] [ 2 ]
   1 quote [ [ 1 ] ]
-  2 cat [ 2 1 ]
-  1 call 1
+  2 cat   [ 2 1 ]
+  1 call  1
 
   [ drop ]
   [ dup quote cat call ] swap cat
 
   take ( [A] [B] -- [B[A]] ) swap quote cat
-  dip ( [A] [B] -- B [A] ) take call
+  dip  ( [A] [B] -- B [A] ) take call
   cons ( [A] [B] -- [[A]B] ) swap quote swap cat
   over ( a b -- a b a ) [ dup ] dip swap
-  rot ( a b c -- b c a ) [ swap ] dip swap
+  rot  ( a b c -- b c a ) [ swap ] dip swap
   -rot ( a b c -- c a b ) swap [ swap ] dip
-  fix ( ( A ( A -- B ) -- B ) -- ( A -- B ) ) [ dup cons ] swap cat dup cons
+  fix  ( ( A ( A -- B ) -- B ) -- ( A -- B ) ) [ dup cons ] swap cat dup cons
   """
 
 
@@ -182,7 +215,18 @@ cakeK : Model
 cakeK = parseFile
   """
   2 cake [ [ 2 ] 1 ] [ 1 [ 2 ] ]
-  2 k 1
+  2 k    1
+
+  [ [ ] k ]
+  [ [ dup dip ] dip call ] cons
+
+  drop  [ ] k
+  dip   cake k
+  cons  cake [ ] k
+  quote [ ] cake [ ] k
+  swap  [ ] cake [ ] k cake k
+  dup   [ ] cake cake k cake k
+  call  [ ] cake cake k cake k k
   """
 
 
@@ -190,7 +234,7 @@ consSap : Model
 consSap = parseFile
   """
   2 cons [ [ 2 ] 1 ]
-  2 sap 1 2
+  2 sap  1 2
   """
 
 
@@ -285,7 +329,7 @@ type alias Model =
 
 
 init : () -> ( Model, Cmd a )
-init _ = ( cakeK, Cmd.none )
+init _ = ( defaultOperators, Cmd.none )
 
 
 -- PARSERS
@@ -529,6 +573,7 @@ type Msg
   | ToggleZero Bool
   | UpdateSuccessor String
   | ToggleSuccessor Bool
+  | Export
   | Import
   | LoadFile File.File
 
@@ -626,6 +671,8 @@ update msg model =
             , Cmd.none
             )
     LoadModel m -> ( m, Cmd.none )
+    Export ->
+      ( model, Download.string "preset.cce" "" (exportFile model) )
     Import -> ( model, Select.file ["text/*"] LoadFile )
     LoadFile f ->
       ( model, File.toString f |> perform (parseFile >> LoadModel) )
@@ -743,8 +790,8 @@ view model =
           , presetButton "Minimal base" (LoadModel cakeK)
           , presetButton "Linear base" (LoadModel consSap)
           , presetButton "Brainfuck Encoded" (LoadModel becc)
-          , presetButton "Export" (Import)
-          , presetButton "Import" (Import)
+          , presetButton "Export" Export
+          , presetButton "Import" Import
           ]
   , div [ class ukCard ]
     [ div [ class "uk-overflow-auto" ]

@@ -1,0 +1,15 @@
+2 cake [ [ 2 ] 1 ] [ 1 [ 2 ] ]
+2 k    1
+
+[ [ ] k ]
+[ [ dup dip ] dip call ] cons
+
+drop  [ ] k
+dip   cake k
+cons  cake [ ] k
+quote [ ] cake [ ] k
+swap  [ ] cake [ ] k cake k
+dup   [ ] cake cake k cake k
+call  [ ] cake cake k cake k k
+
+[ A ] 5 call

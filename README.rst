@@ -167,6 +167,9 @@ example these are representations of some of the default words::
   dip ( [A] [B] -- B [A] ) take call
   cons ( [A] [B] -- [[A]B] ) swap quote swap cat
 
+Note that the comments (in parenthesis) in this example are a part of word
+definitions and are not required by the format.
+
 
 Expression
 ----------

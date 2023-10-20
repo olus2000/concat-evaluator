@@ -1,0 +1,14 @@
+1 dup  [ 1 ] [ 1 ]
+1 drop
+2 swap [ 1 ] [ 2 ]
+2 cons [ [ 2 ] 1 ]
+2 dip  1 [ 2 ]
+1 call 1
+
+[ drop ]
+
+quote [ ] cons
+cat   swap [ dip call ] cons cons
+1+    [ [ dup dip ] dip call ] cons
++     [ 1+ ] swap call
+*     [ 0 swap [ dup [ + ] dip ] ] dip call drop
