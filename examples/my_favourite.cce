@@ -6,6 +6,7 @@
 1 call 1
 
 [ drop ]
+1+
 
 quote [ ] cons
 cat   swap [ dip call ] cons cons
