@@ -115,6 +115,8 @@ and allow `importing and exporting`_ presets as text files.
 
 After you enter the expression into the textbox at the bottom and resolve any
 errors you can step through its evaluation using the buttons below the textbox.
+You can set the step size and then do that many steps forward or backward, or
+five times that many steps forward or backward.
 
 
 .. _importing and exporting: `Import/Export format`_
