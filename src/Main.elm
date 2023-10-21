@@ -85,6 +85,8 @@ parseFile s =
   , result = parseExpression f.expr
   , zero = zero
   , succ = succ
+  , stepMult = 1
+  , stepMultField = ""
   }
 
 
@@ -325,6 +327,8 @@ type alias Model =
   , result : Result Error Expression
   , zero : NatModel
   , succ : NatModel
+  , stepMult : Int
+  , stepMultField : String
   }
 
 
@@ -568,6 +572,7 @@ type Msg
   | Timed (Posix -> Msg)
   | UpdateExpr String
   | Step Int
+  | ChangeStepMult String
   | LoadModel Model
   | UpdateZero String
   | ToggleZero Bool
@@ -646,7 +651,8 @@ update msg model =
           | succ = { succ | enabled = b }
           , zero = { zero | enabled = zero.enabled || b }
           }, Cmd.none )
-    Step n ->
+    Step m ->
+      let n = m * model.stepMult in
       case model.result of
         Err _ -> ( model, Cmd.none )
         Ok expression ->
@@ -670,6 +676,12 @@ update msg model =
               }
             , Cmd.none
             )
+    ChangeStepMult s ->
+      let
+          m = { model | stepMultField = s }
+      in case String.toFloat s of
+        Just n -> ( { m | stepMult = max 1 (floor n) }, Cmd.none )
+        Nothing -> ( m, Cmd.none )
     LoadModel m -> ( m, Cmd.none )
     Export ->
       ( model, Download.string "preset.cce" "" (exportFile model) )
@@ -913,7 +925,7 @@ view model =
       , onInput UpdateExpr
       ] []
       :: 
-      stepButtons
+      stepButtons model.stepMultField
       ::
       case model.result of
          Err message -> [ div [ class "uk-text-danger" ]
@@ -1053,18 +1065,22 @@ arrow = span [ attribute "uk-icon" "icon: arrow-right; ratio: 2.5"
              ] []
 
 
-stepButtons : Html Msg
-stepButtons =
+stepButtons : String -> Html Msg
+stepButtons stepMult =
   div [ class ( "uk-grid uk-grid-collapse uk-margin-remove "
-             ++ "uk-child-width-expand@s" ) ]
-      [ stepButton -1000 "-1000"
-      , stepButton -100 "-100"
-      , stepButton -10 "-10"
+             ++ "uk-child-width-expand@s" ) ]      
+      [ stepButton -5 "-5"
       , stepButton -1 "-1"
+      , input [ class "uk-input uk-width-expand@s"
+              , type_ "number"
+              , placeholder "Steps"
+              , value stepMult
+              , onInput ChangeStepMult
+              , style "font-family" "monospace"
+              , style "height" "30px"
+              ] []
       , stepButton 1 "+1"
-      , stepButton 10 "+10"
-      , stepButton 100 "+100"
-      , stepButton 1000 "+1000"
+      , stepButton 5 "+5"
       ]
 --  [ div [ class "uk-column" ]
 --    [ div [ class "uk-grid uk-grid-collapse uk-margin-remove" ]
@@ -1087,7 +1103,8 @@ stepButtons =
 
 stepButton : Int -> String -> Html Msg
 stepButton value txt =
-  div [ class "uk-column uk-margin-remove" ]
-  [ button [ class "uk-button uk-button-default uk-width-expand"
+  div [ class "uk-column uk-margin-remove uk-flex-none uk-width-auto@s" ]
+  [ button [ class """uk-button uk-button-default uk-width-auto@s
+                      uk-width-small@l uk-button-small"""
            , onClick (Step value) ] [ text txt ]
   ]
