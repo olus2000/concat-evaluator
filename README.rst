@@ -37,6 +37,8 @@ This tool additionally restricts the word ``--`` for future use.
 Operators
 ---------
 
+.. _Operators:
+
 Substitution rules in CC consist of a pattern and a substitution. Patterns
 always have the form of some number of quotes followed by the operator word.
 They capture contents of the argument quotes for use in the substitution. The
