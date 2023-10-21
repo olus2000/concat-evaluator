@@ -8,9 +8,9 @@ own base operators as well as chosing from several presets, and evaluating
 expressions using those operators. In the future it is planned to add support
 for defining words as reusable code snippets.
 
-It's currently hosted on the `QWD software`_ page.
+It's currently hosted on `my homepage`_.
 
-.. _QWD software: https://qwd.software/home/olus2000/concat-eval.html
+.. _my homepage: https://olus2000.pl/concat_eval
 
 
 Concantenative calculus overview
@@ -201,4 +201,4 @@ released under the `GPL v3 license`_. Thanks to the QWD community for help!
 
 .. _Aleksander "olus2000" Sabak: https://github.com/olus2000
 .. _GPL v3 license: ./LICENSE
-.. QWD community: https://qwd.software QWD is no more :(
+.. QWD community: https://qwd.software QWD.software is no more :(
