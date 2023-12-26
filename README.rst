@@ -208,7 +208,7 @@ runner with Factor::
   factor runner/runner.factor [limit] script
 
 Or place this repo in your Factor work folder and
-``"concat-eval.runner" deploy`` to compile it into a standalone executable.
+``"concat-evaluator.runner" deploy`` to compile it into a standalone executable.
 
 
 Credits

@@ -1,12 +1,12 @@
 ! Copyright (C) 2023 Aleksander Sabak.
 ! See https://factorcode.org/license.txt for BSD license.
-USING: accessors arrays assocs combinators combinators.short-circuit command-line continuations
-  debugger hashtables interpolate kernel make math math.parser
-  namespaces prettyprint splitting
-  strings
+USING: accessors arrays assocs combinators
+  combinators.short-circuit command-line continuations debugger
+  hashtables interpolate kernel make math math.parser namespaces
+  prettyprint splitting strings
   io io.encodings.utf8 io.files io.pathnames
   sequences sequences.extras sequences.repeating ;
-IN: concat_eval.runner
+IN: concat-evaluator.runner
 
 
 ERROR: incorrect-arity operator arity ;
