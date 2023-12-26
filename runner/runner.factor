@@ -22,14 +22,8 @@ ERROR: non-integer-in-skeleton word ;
 ERROR: no-operator-name ;
 
 
-: (print-error) ( error -- )
-  [ error. flush ] curry
-  [ [ print-error ] with-global ]
-  recover ;
-
-
-: report-error ( error -- )
-  error-stream get [ (print-error) ] with-output-stream* ;
+: report-error ( error -- ) drop ;
+!  error-stream get [ print-error ] with-output-stream* ;
 
 
 TUPLE: concat-eval operators zero succ words expression stack ;
