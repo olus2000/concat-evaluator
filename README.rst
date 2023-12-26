@@ -34,10 +34,10 @@ quotations or quotes.
 This tool additionally restricts the word ``--`` for future use.
 
 
+.. _Operators:
+
 Operators
 ---------
-
-.. _Operators:
 
 Substitution rules in CC consist of a pattern and a substitution. Patterns
 always have the form of some number of quotes followed by the operator word.
@@ -195,6 +195,20 @@ and ``index.html`` should now display the application when opened with a
 browser.
 
 .. _Elm: https://guide.elm-lang.org/install/elm.html
+
+
+Factor runner
+=============
+
+Concatenative evaluator functionality is also available as a runner written in
+Factor. It works with files written in concat eval export syntax and evaluates
+the expressions in the files for a given amount of steps. You can execute the
+runner with Factor::
+
+  factor runner/runner.factor [limit] script
+
+Or place this repo in your Factor work folder and
+``"concat-eval.runner" deploy`` to compile it into a standalone executable.
 
 
 Credits
